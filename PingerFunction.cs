@@ -14,11 +14,21 @@ namespace Pinger
             { "google.com", new[] {80, 443} }
         };
 
+        /// <summary>
+        /// Creates an instance of the PingerFunction with the given logger factory.
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory to use for logging from this function.</param>
         public PingerFunction(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<PingerFunction>();
         }
 
+        /// <summary>
+        /// This function is called every 30 seconds and checks the following endpoints:
+        ///     - google.com:80
+        ///     - google.com:443
+        /// </summary>
+        /// <param name="myTimer">Information about the timer that triggered this function.</param>
         [Function("PingerFunction")]
         public async Task Run([TimerTrigger("*/30 * * * * *")] TimerInfo myTimer)
         {
@@ -31,7 +41,15 @@ namespace Pinger
                 _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
             }
         }
-
+        
+        /// <summary>
+        /// Checks all endpoints that are configured in the <see cref="_endpointsToCheck"/> dictionary.
+        /// </summary>
+        /// <remarks>
+        /// The method creates a list of tasks, where each task is either a call to <see cref="CheckPortAsync(string, int)"/>
+        /// for all configured ports of an endpoint, or a call to <see cref="PingHostAsync(string)"/> for the host itself.
+        /// The method then waits for all tasks to complete using <see cref="Task.WhenAll(IEnumerable{Task})"/>.
+        /// </remarks>
         private async Task CheckAllEndpoints()
         {
             var tasks = new List<Task>();
@@ -48,7 +66,21 @@ namespace Pinger
 
             await Task.WhenAll(tasks);
         }
-
+        
+        /// <summary>
+        /// Checks whether the specified TCP port on the given host is reachable.
+        /// </summary>
+        /// <param name="hostname">The hostname or IP address of the server to check.</param>
+        /// <param name="port">The TCP port to check.</param>
+        /// <returns><see langword="true"/> if the port is reachable, <see langword="false"/> otherwise.</returns>
+        /// <remarks>
+        /// The method attempts to connect to the specified port using a <see cref="TcpClient"/>,
+        /// and waits for 5 seconds for the connection to complete. If the connection completes
+        /// successfully, the method logs a message at the information level and returns <see langword="true"/>.
+        /// If the connection times out, the method logs a message at the warning level and returns <see langword="false"/>.
+        /// If the connection is faulted (i.e. an exception is thrown), the method logs a message at the error level
+        /// and returns <see langword="false"/>.
+        /// </remarks>
         private async Task<bool> CheckPortAsync(string hostname, int port)
         {
             try
@@ -81,6 +113,19 @@ namespace Pinger
             }
         }
         
+        /// <summary>
+        /// Sends a ping to the specified hostname and waits for 5 seconds for the response.
+        /// </summary>
+        /// <param name="hostname">The hostname to ping.</param>
+        /// <returns><see langword="true"/> if the ping was successful, <see langword="false"/> otherwise.</returns>
+        /// <remarks>
+        /// The method attempts to ping the specified hostname using a <see cref="Ping"/>,
+        /// and waits for 5 seconds for the response. If the response is received successfully,
+        /// the method logs a message at the information level and returns <see langword="true"/>.
+        /// If the response times out, the method logs a message at the warning level and returns <see langword="false"/>.
+        /// If the response is faulted (i.e. an exception is thrown), the method logs a message at the error level
+        /// and returns <see langword="false"/>.
+        /// </remarks>
         private async Task<bool> PingHostAsync(string hostname)
         {
             try
@@ -106,6 +151,18 @@ namespace Pinger
             }
         }
 
+        /// <summary>
+        /// Checks whether the specified endpoint is reachable, and if not, sends a Teams notification.
+        /// </summary>
+        /// <param name="endpoint">The hostname or IP address of the server to check.</param>
+        /// <remarks>
+        /// The method attempts to ping the specified endpoint using a <see cref="Ping"/>,
+        /// and waits for 5 seconds for the response. If the response is received successfully,
+        /// the method logs a message at the information level and returns <see langword="true"/>.
+        /// If the response times out or is faulted (i.e. an exception is thrown), the method logs a message at the warning level
+        /// and returns <see langword="false"/>. If the response is not successful, the method also sends a Teams notification
+        /// with the specified message.
+        /// </remarks>
         private async Task CheckEndpointStatusAsync(string endpoint)
         {
             if (!await PingHostAsync(endpoint))
@@ -113,7 +170,22 @@ namespace Pinger
                 await SendTeamsNotificationAsync(endpoint, "Ping failed");
             }
         }
-
+        
+        /// <summary>
+        /// Sends a Teams notification for the specified <paramref name="endpoint"/>,
+        /// with the specified <paramref name="message"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The method is not yet implemented.
+        /// </para>
+        /// <para>
+        /// The method should send a message to the Teams channel associated with the
+        /// specified <paramref name="endpoint"/>, with the specified <paramref name="message"/>.
+        /// </para>
+        /// </remarks>
+        /// <param name="endpoint">The hostname or IP address of the server that is the subject of the notification.</param>
+        /// <param name="message">The message to be included in the notification.</param>
         private async Task SendTeamsNotificationAsync(string endpoint, string message)
         {
             // NOT YET IMPLEMENTED
