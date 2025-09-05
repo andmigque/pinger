@@ -11,8 +11,6 @@ namespace Pinger
 
         private readonly Dictionary<string, int[]> _endpointsToCheck = new()
         {
-            // { "your-monitor-server.com", new[] { 80 } },
-            // { "backup-monitor.com", new[] { 443 } },
             { "google.com", new[] {80, 443} }
         };
 
@@ -82,7 +80,7 @@ namespace Pinger
                 return false;
             }
         }
-
+        
         private async Task<bool> PingHostAsync(string hostname)
         {
             try
@@ -107,5 +105,19 @@ namespace Pinger
                 return false;
             }
         }
+
+        private async Task CheckEndpointStatusAsync(string endpoint)
+        {
+            if (!await PingHostAsync(endpoint))
+            {
+                await SendTeamsNotificationAsync(endpoint, "Ping failed");
+            }
+        }
+
+        private async Task SendTeamsNotificationAsync(string endpoint, string message)
+        {
+            // NOT YET IMPLEMENTED
+        }
+
     }
 }
